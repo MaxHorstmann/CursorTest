@@ -5,7 +5,7 @@ import Chat from '@/components/Chat';
 import { ChatRoom } from '@/types/chat';
 
 export default function ChatPage() {
-  const [currentRoom, setCurrentRoom] = useState<ChatRoom>({
+  const currentRoom: ChatRoom = {
     id: '1',
     name: 'AI Assistant',
     type: 'ai',
@@ -18,7 +18,7 @@ export default function ChatPage() {
         timestamp: new Date(),
       },
     ],
-  });
+  };
 
   const rooms: ChatRoom[] = [
     currentRoom,
