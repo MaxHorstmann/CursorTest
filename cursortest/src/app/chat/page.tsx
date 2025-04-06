@@ -12,18 +12,10 @@ export default function ChatPage() {
   useEffect(() => {
     const loadRooms = async () => {
       try {
-        // In a real app, you'd fetch rooms from Supabase
-        // For now, we'll use static rooms
+        // For now, we'll use a static group chat room
         const initialRooms: ChatRoom[] = [
           {
             id: '1',
-            name: 'AI Assistant',
-            type: 'ai',
-            participants: ['user1'],
-            messages: [],
-          },
-          {
-            id: '2',
             name: 'Group Chat',
             type: 'user',
             participants: ['user1', 'user2', 'user3'],
@@ -45,7 +37,7 @@ export default function ChatPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-xl">Loading chat rooms...</div>
+        <div className="text-xl">Loading chat room...</div>
       </div>
     );
   }
@@ -53,8 +45,8 @@ export default function ChatPage() {
   return (
     <main className="min-h-screen bg-gray-100 py-8">
       <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold text-center mb-8">Chat Rooms</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <h1 className="text-3xl font-bold text-center mb-8">Chat Room</h1>
+        <div className="max-w-4xl mx-auto">
           {rooms.map((room) => (
             <div key={room.id} className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">{room.name}</h2>

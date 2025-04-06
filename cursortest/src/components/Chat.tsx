@@ -83,7 +83,7 @@ export default function Chat({ room, currentUser }: ChatProps) {
     try {
       const message = {
         content: newMessage,
-        sender: room.type === 'ai' ? 'user' : 'user',
+        sender: 'user',
         timestamp: new Date(),
         sender_name: currentUser,
         room_id: room.id,
@@ -99,25 +99,6 @@ export default function Chat({ room, currentUser }: ChatProps) {
       }
 
       setNewMessage('');
-
-      // If it's an AI chat, simulate AI response
-      if (room.type === 'ai') {
-        setTimeout(async () => {
-          const aiResponse = {
-            content: `This is an AI response to: "${newMessage}"`,
-            sender: 'ai',
-            timestamp: new Date(),
-            sender_name: 'AI Assistant',
-            room_id: room.id,
-          };
-
-          const { error } = await supabase.from('messages').insert([aiResponse]);
-          if (error) {
-            console.error('Supabase error:', error);
-            setError(`Error sending AI response: ${error.message}`);
-          }
-        }, 1000);
-      }
     } catch (error: any) {
       console.error('Unexpected error:', error);
       setError(`Unexpected error: ${error?.message || 'Unknown error'}`);
@@ -131,7 +112,7 @@ export default function Chat({ room, currentUser }: ChatProps) {
       <div className="p-4 border-b">
         <h2 className="text-xl font-semibold">{room.name}</h2>
         <p className="text-sm text-gray-500">
-          {room.type === 'ai' ? 'AI Chat' : `Chat with ${room.participants.filter(p => p !== currentUser).join(', ')}`}
+          Chatting with {room.participants.filter(p => p !== currentUser).join(', ')}
         </p>
       </div>
 
@@ -153,14 +134,12 @@ export default function Chat({ room, currentUser }: ChatProps) {
               className={`max-w-[70%] rounded-lg p-3 ${
                 message.sender === 'user'
                   ? 'bg-blue-500 text-white'
-                  : message.sender === 'ai'
-                  ? 'bg-gray-200 text-gray-800'
                   : 'bg-green-500 text-white'
               }`}
             >
               {message.sender !== 'user' && (
                 <div className="text-xs font-semibold mb-1">
-                  {message.senderName || (message.sender === 'ai' ? 'AI Assistant' : 'Other User')}
+                  {message.sender_name || 'Other User'}
                 </div>
               )}
               <p>{message.content}</p>
