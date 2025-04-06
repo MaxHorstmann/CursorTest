@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Message, ChatRoom } from '@/types/chat';
+import { supabase } from '@/lib/supabase';
 
 interface ChatProps {
   room: ChatRoom;
@@ -9,9 +10,62 @@ interface ChatProps {
 }
 
 export default function Chat({ room, currentUser }: ChatProps) {
-  const [messages, setMessages] = useState<Message[]>(room.messages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Subscribe to new messages
+    const channel = supabase
+      .channel(`room:${room.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `room_id=eq.${room.id}`,
+        },
+        (payload) => {
+          const newMessage = payload.new as Message;
+          setMessages((prev) => [...prev, newMessage]);
+        }
+      )
+      .subscribe();
+
+    // Load existing messages
+    const loadMessages = async () => {
+      try {
+        console.log('Loading messages for room:', room.id);
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('room_id', room.id)
+          .order('timestamp', { ascending: true });
+
+        if (error) {
+          console.error('Supabase error:', error);
+          setError(`Error loading messages: ${error.message}`);
+          return;
+        }
+
+        console.log('Loaded messages:', data);
+        setMessages(data || []);
+        setError(null);
+      } catch (error: any) {
+        console.error('Unexpected error:', error);
+        setError(`Unexpected error: ${error?.message || 'Unknown error'}`);
+      }
+    };
+
+    loadMessages();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [room.id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -21,21 +75,55 @@ export default function Chat({ room, currentUser }: ChatProps) {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || isLoading) return;
 
-    const message: Message = {
-      id: Date.now().toString(),
-      content: newMessage,
-      sender: 'user',
-      timestamp: new Date(),
-      senderName: currentUser,
-    };
+    setIsLoading(true);
+    setError(null);
+    try {
+      const message = {
+        content: newMessage,
+        sender: room.type === 'ai' ? 'user' : 'user',
+        timestamp: new Date(),
+        sender_name: currentUser,
+        room_id: room.id,
+      };
 
-    setMessages([...messages, message]);
-    setNewMessage('');
+      console.log('Sending message:', message);
+      const { error } = await supabase.from('messages').insert([message]);
 
-    // TODO: Implement actual message sending to backend
+      if (error) {
+        console.error('Supabase error:', error);
+        setError(`Error sending message: ${error.message}`);
+        return;
+      }
+
+      setNewMessage('');
+
+      // If it's an AI chat, simulate AI response
+      if (room.type === 'ai') {
+        setTimeout(async () => {
+          const aiResponse = {
+            content: `This is an AI response to: "${newMessage}"`,
+            sender: 'ai',
+            timestamp: new Date(),
+            sender_name: 'AI Assistant',
+            room_id: room.id,
+          };
+
+          const { error } = await supabase.from('messages').insert([aiResponse]);
+          if (error) {
+            console.error('Supabase error:', error);
+            setError(`Error sending AI response: ${error.message}`);
+          }
+        }, 1000);
+      }
+    } catch (error: any) {
+      console.error('Unexpected error:', error);
+      setError(`Unexpected error: ${error?.message || 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -46,6 +134,12 @@ export default function Chat({ room, currentUser }: ChatProps) {
           {room.type === 'ai' ? 'AI Chat' : `Chat with ${room.participants.filter(p => p !== currentUser).join(', ')}`}
         </p>
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-100 text-red-700">
+          {error}
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
@@ -71,7 +165,7 @@ export default function Chat({ room, currentUser }: ChatProps) {
               )}
               <p>{message.content}</p>
               <div className="text-xs mt-1 opacity-70">
-                {message.timestamp.toLocaleTimeString()}
+                {new Date(message.timestamp).toLocaleTimeString()}
               </div>
             </div>
           </div>
@@ -88,12 +182,18 @@ export default function Chat({ room, currentUser }: ChatProps) {
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder="Type your message..."
             className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoading}
           />
           <button
             onClick={handleSendMessage}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoading}
+            className={`px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              isLoading
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
           >
-            Send
+            {isLoading ? 'Sending...' : 'Send'}
           </button>
         </div>
       </div>

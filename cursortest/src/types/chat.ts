@@ -3,7 +3,8 @@ export type Message = {
   content: string;
   sender: 'user' | 'ai' | 'other-user';
   timestamp: Date;
-  senderName?: string;
+  sender_name?: string;
+  room_id: string;
 };
 
 export type ChatRoom = {

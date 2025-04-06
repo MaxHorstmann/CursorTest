@@ -1,43 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Chat from '@/components/Chat';
 import { ChatRoom } from '@/types/chat';
+import { supabase } from '@/lib/supabase';
 
 export default function ChatPage() {
-  const currentRoom: ChatRoom = {
-    id: '1',
-    name: 'AI Assistant',
-    type: 'ai',
-    participants: ['user1'],
-    messages: [
-      {
-        id: '1',
-        content: 'Hello! How can I help you today?',
-        sender: 'ai',
-        timestamp: new Date(),
-      },
-    ],
-  };
+  const [rooms, setRooms] = useState<ChatRoom[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const rooms: ChatRoom[] = [
-    currentRoom,
-    {
-      id: '2',
-      name: 'Group Chat',
-      type: 'user',
-      participants: ['user1', 'user2', 'user3'],
-      messages: [
-        {
-          id: '1',
-          content: 'Hey everyone!',
-          sender: 'other-user',
-          timestamp: new Date(),
-          senderName: 'user2',
-        },
-      ],
-    },
-  ];
+  useEffect(() => {
+    const loadRooms = async () => {
+      try {
+        // In a real app, you'd fetch rooms from Supabase
+        // For now, we'll use static rooms
+        const initialRooms: ChatRoom[] = [
+          {
+            id: '1',
+            name: 'AI Assistant',
+            type: 'ai',
+            participants: ['user1'],
+            messages: [],
+          },
+          {
+            id: '2',
+            name: 'Group Chat',
+            type: 'user',
+            participants: ['user1', 'user2', 'user3'],
+            messages: [],
+          },
+        ];
+
+        setRooms(initialRooms);
+      } catch (error) {
+        console.error('Error loading rooms:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadRooms();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-xl">Loading chat rooms...</div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gray-100 py-8">
