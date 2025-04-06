@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -7,6 +8,15 @@ import { supabase } from '@/lib/supabase';
 interface ChatProps {
   room: ChatRoom;
   currentUser: string;
+}
+
+interface SupabasePayload {
+  new: Message;
+  old: Message;
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  schema: string;
+  table: string;
+  commit_timestamp: string;
 }
 
 export default function Chat({ room, currentUser }: ChatProps) {
@@ -27,7 +37,7 @@ export default function Chat({ room, currentUser }: ChatProps) {
           schema: 'public',
           table: 'messages',
           filter: `room_id=eq.${room.id}`,
-        },
+        } as const,
         (payload) => {
           const newMessage = payload.new as Message;
           setMessages((prev) => [...prev, newMessage]);
