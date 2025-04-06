@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function ChatPage() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, isLoading: authLoading, signOut } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function ChatPage() {
           <h1 className="text-3xl font-bold">Chat Room</h1>
           <div className="flex items-center space-x-4">
             <span className="text-gray-600">
-              {user?.isAnonymous ? 'Anonymous User' : 'Logged in user'}
+              {user?.is_anonymous ? 'Anonymous User' : 'Logged in user'}
             </span>
             <button
               onClick={() => signOut()}
