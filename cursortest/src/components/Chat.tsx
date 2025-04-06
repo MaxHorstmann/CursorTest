@@ -10,7 +10,7 @@ interface ChatProps {
 }
 
 export default function Chat({ room, currentUser }: ChatProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(room.messages);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +75,8 @@ export default function Chat({ room, currentUser }: ChatProps) {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!newMessage.trim() || isLoading) return;
 
     setIsLoading(true);
@@ -83,10 +84,9 @@ export default function Chat({ room, currentUser }: ChatProps) {
     try {
       const message = {
         content: newMessage,
-        sender: 'user',
-        timestamp: new Date(),
-        sender_name: currentUser,
         room_id: room.id,
+        user_id: currentUser,
+        sender: 'user',
       };
 
       console.log('Sending message:', message);
@@ -127,25 +127,20 @@ export default function Chat({ room, currentUser }: ChatProps) {
           <div
             key={message.id}
             className={`flex ${
-              message.sender === 'user' ? 'justify-end' : 'justify-start'
+              message.user_id === currentUser ? 'justify-end' : 'justify-start'
             }`}
           >
             <div
               className={`max-w-[70%] rounded-lg p-3 ${
-                message.sender === 'user'
+                message.user_id === currentUser
                   ? 'bg-blue-500 text-white'
-                  : 'bg-green-500 text-white'
+                  : 'bg-gray-200 text-gray-800'
               }`}
             >
-              {message.sender !== 'user' && (
-                <div className="text-xs font-semibold mb-1">
-                  {message.sender_name || 'Other User'}
-                </div>
-              )}
-              <p>{message.content}</p>
-              <div className="text-xs mt-1 opacity-70">
-                {new Date(message.timestamp).toLocaleTimeString()}
-              </div>
+              <p className="text-sm">{message.content}</p>
+              <p className="text-xs mt-1 opacity-70">
+                {message.user_id === currentUser ? 'You' : 'Anonymous User'}
+              </p>
             </div>
           </div>
         ))}
@@ -153,18 +148,17 @@ export default function Chat({ room, currentUser }: ChatProps) {
       </div>
 
       <div className="p-4 border-t">
-        <div className="flex space-x-2">
+        <form onSubmit={handleSendMessage} className="flex space-x-2">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder="Type your message..."
             className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={isLoading}
           />
           <button
-            onClick={handleSendMessage}
+            type="submit"
             disabled={isLoading}
             className={`px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               isLoading
@@ -174,7 +168,7 @@ export default function Chat({ room, currentUser }: ChatProps) {
           >
             {isLoading ? 'Sending...' : 'Send'}
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );
