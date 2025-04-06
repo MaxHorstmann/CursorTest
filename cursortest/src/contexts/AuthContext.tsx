@@ -1,11 +1,18 @@
+'use client';
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { User } from '@supabase/supabase-js';
+import { getAnonymousUserId } from '@/lib/cookies';
+
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  throw new Error('Missing Supabase environment variables');
+}
 
 const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 export interface AuthContextType {
@@ -27,7 +34,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkUser = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
+        if (session?.user) {
+          setUser(session.user);
+        } else {
+          // Create an anonymous user if no session exists
+          const anonymousId = getAnonymousUserId();
+          setUser({
+            id: anonymousId,
+            is_anonymous: true,
+            email: `anonymous-${anonymousId}@example.com`,
+            role: 'anon',
+            aud: 'anon',
+            app_metadata: {},
+            user_metadata: {},
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as User);
+        }
       } catch (error) {
         console.error('Error checking session:', error);
       } finally {
@@ -38,7 +61,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      if (session?.user) {
+        setUser(session.user);
+      } else {
+        // Create an anonymous user when signing out
+        const anonymousId = getAnonymousUserId();
+        setUser({
+          id: anonymousId,
+          is_anonymous: true,
+          email: `anonymous-${anonymousId}@example.com`,
+          role: 'anon',
+          aud: 'anon',
+          app_metadata: {},
+          user_metadata: {},
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as User);
+      }
     });
 
     return () => {
@@ -92,7 +131,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      setUser(null);
+      // Create an anonymous user after signing out
+      const anonymousId = getAnonymousUserId();
+      setUser({
+        id: anonymousId,
+        is_anonymous: true,
+        email: `anonymous-${anonymousId}@example.com`,
+        role: 'anon',
+        aud: 'anon',
+        app_metadata: {},
+        user_metadata: {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as User);
       router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);

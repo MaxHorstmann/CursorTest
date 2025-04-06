@@ -9,12 +9,16 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function ChatPage() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user, isLoading: authLoading, signOut } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     const loadRooms = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+
         // For now, we'll use a static group chat room
         const initialRooms: ChatRoom[] = [
           {
@@ -29,20 +33,29 @@ export default function ChatPage() {
         setRooms(initialRooms);
       } catch (error) {
         console.error('Error loading rooms:', error);
+        setError('Failed to load chat rooms');
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (user) {
+    if (!authLoading) {
       loadRooms();
     }
-  }, [user]);
+  }, [authLoading]);
 
   if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-xl">Loading chat room...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-xl text-red-600">{error}</div>
       </div>
     );
   }
@@ -54,14 +67,16 @@ export default function ChatPage() {
           <h1 className="text-3xl font-bold">Chat Room</h1>
           <div className="flex items-center space-x-4">
             <span className="text-gray-600">
-              {user?.is_anonymous ? 'Anonymous User' : 'Logged in user'}
+              {user?.is_anonymous ? 'Anonymous User' : user?.email}
             </span>
-            <button
-              onClick={() => signOut()}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-            >
-              Sign Out
-            </button>
+            {!user?.is_anonymous && (
+              <button
+                onClick={() => signOut()}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+              >
+                Sign Out
+              </button>
+            )}
           </div>
         </div>
         <div className="max-w-4xl mx-auto">

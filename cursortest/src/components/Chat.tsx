@@ -27,6 +27,16 @@ export default function Chat({ room, currentUser }: ChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!currentUser) {
+      setError('User not authenticated');
+      return;
+    }
+
+    if (!supabase) {
+      setError('Supabase client not initialized');
+      return;
+    }
+
     // Subscribe to new messages
     const channel = supabase
       .channel(`room:${room.id}`)
@@ -48,7 +58,9 @@ export default function Chat({ room, currentUser }: ChatProps) {
     // Load existing messages
     const loadMessages = async () => {
       try {
-        console.log('Loading messages for room:', room.id);
+        setIsLoading(true);
+        setError(null);
+
         const { data, error } = await supabase
           .from('messages')
           .select('*')
@@ -61,21 +73,23 @@ export default function Chat({ room, currentUser }: ChatProps) {
           return;
         }
 
-        console.log('Loaded messages:', data);
         setMessages(data || []);
-        setError(null);
       } catch (error: any) {
         console.error('Unexpected error:', error);
         setError(`Unexpected error: ${error?.message || 'Unknown error'}`);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadMessages();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, [room.id]);
+  }, [room.id, currentUser]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

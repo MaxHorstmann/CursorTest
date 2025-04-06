@@ -1,15 +1,12 @@
 export function getAnonymousUserId(): string {
-  if (typeof window === 'undefined') return '';
-  
-  let userId = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('anonymous_user_id='))
-    ?.split('=')[1];
-
-  if (!userId) {
-    userId = crypto.randomUUID();
-    document.cookie = `anonymous_user_id=${userId}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+  if (typeof window === 'undefined') {
+    return 'anonymous';
   }
 
-  return userId;
+  let anonymousId = localStorage.getItem('anonymous_user_id');
+  if (!anonymousId) {
+    anonymousId = `anon-${Math.random().toString(36).substring(2, 15)}`;
+    localStorage.setItem('anonymous_user_id', anonymousId);
+  }
+  return anonymousId;
 } 
