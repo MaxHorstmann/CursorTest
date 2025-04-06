@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
@@ -11,17 +12,21 @@ export default function LoginPage() {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { signIn, signUp } = useAuth();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
     try {
       if (isSignUp) {
         await signUp(email, password, name);
       } else {
         await signIn(email, password);
+        router.push('/chat');
       }
-    } catch (error: any) {
+    } catch (err) {
+      const error = err as Error;
       setError(error.message);
     }
   };
@@ -34,12 +39,12 @@ export default function LoginPage() {
             {isSignUp ? 'Create your account' : 'Sign in to your account'}
           </h2>
         </div>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
           {isSignUp && (
             <div>
               <label htmlFor="name" className="sr-only">

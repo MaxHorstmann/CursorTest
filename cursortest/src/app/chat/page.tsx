@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function ChatPage() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -57,10 +57,7 @@ export default function ChatPage() {
               {user?.isAnonymous ? 'Anonymous User' : 'Logged in user'}
             </span>
             <button
-              onClick={() => {
-                const { signOut } = useAuth();
-                signOut();
-              }}
+              onClick={() => signOut()}
               className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
             >
               Sign Out

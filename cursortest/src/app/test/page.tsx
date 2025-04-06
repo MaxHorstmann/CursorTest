@@ -2,46 +2,50 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Message } from '@/types/chat';
 
 export default function TestPage() {
-  const [connectionStatus, setConnectionStatus] = useState('Testing...');
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const testConnection = async () => {
+    const loadMessages = async () => {
       try {
-        // Test basic connection
         const { data, error } = await supabase
           .from('messages')
           .select('*')
-          .limit(1);
+          .order('created_at', { ascending: true });
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
-        setConnectionStatus('Connected successfully!');
         setMessages(data || []);
-      } catch (error: any) {
-        setConnectionStatus(`Error: ${error?.message || 'Unknown error'}`);
+      } catch (err) {
+        const error = err as Error;
+        setError(error.message);
       }
     };
 
-    testConnection();
+    loadMessages();
   }, []);
 
+  if (error) {
+    return <div className="text-red-500">Error: {error}</div>;
+  }
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Supabase Connection Test</h1>
-      <div className="mb-4">
-        <p className="font-semibold">Status:</p>
-        <p className={connectionStatus.includes('Error') ? 'text-red-500' : 'text-green-500'}>
-          {connectionStatus}
-        </p>
-      </div>
-      <div>
-        <p className="font-semibold">Sample Messages:</p>
-        <pre className="bg-gray-100 p-4 rounded mt-2">
-          {JSON.stringify(messages, null, 2)}
-        </pre>
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Test Page</h1>
+      <div className="space-y-4">
+        {messages.map((message) => (
+          <div key={message.id} className="p-4 bg-gray-100 rounded-lg">
+            <p>{message.content}</p>
+            <p className="text-sm text-gray-500">
+              From: {message.user_id} at {new Date(message.created_at).toLocaleString()}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );
